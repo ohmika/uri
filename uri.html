@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Base64 Data URI — Lightweight</title>
+<meta name="color-scheme" content="dark light">
+<style>
+  :root{
+    --bg:#0a0a0b; --fg:#f5f5f5; --muted:#9a9aa0;
+    --card:#17171a; --card2:#1e1e22; --border:rgba(255,255,255,.10);
+    --accent:#E8FF5A; --accent-ink:#0a0a0b; --radius:16px;
+  }
+  @media(prefers-color-scheme:light){
+    :root{ --bg:#f6f6f7; --fg:#111113; --muted:#6d6d75; --card:#fff; --card2:#f1f1f3; --border:rgba(0,0,0,.10); --accent:#d9ff00; }
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0; min-height:100%; background:var(--bg); color:var(--fg); font:14px/1.5 ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Inter,sans-serif; -webkit-font-smoothing:antialiased}
+  .wrap{max-width:860px; margin:0 auto; padding:28px 16px 56px}
+  header{display:flex; justify-content:space-between; gap:16px; align-items:flex-start; margin-bottom:20px}
+  h1{font-size:23px; font-weight:700; letter-spacing:-.03em; margin:0 0 6px}
+  .sub{color:var(--muted); font-size:13.5px; line-height:1.45; max-width:520px}
+  .badge{font-size:11px; letter-spacing:.08em; text-transform:uppercase; color:var(--muted); border:1px solid var(--border); padding:6px 10px; border-radius:999px; white-space:nowrap}
+  .tabs{display:inline-flex; gap:4px; padding:4px; background:var(--card); border:1px solid var(--border); border-radius:999px; margin-bottom:16px}
+  .tab{border:0; padding:8px 16px; border-radius:999px; background:transparent; color:var(--muted); cursor:pointer; font-weight:600; font-size:13.5px; transition:all .15s}
+  .tab[aria-selected="true"]{background:var(--fg); color:var(--bg)}
+  .panel{background:var(--card); border:1px solid var(--border); border-radius:var(--radius); padding:16px; overflow:visible}
+  .grid2{display:grid; grid-template-columns:1fr 200px; gap:12px; margin-bottom:14px}
+  @media(max-width:560px){ .grid2{grid-template-columns:1fr} }
+  .field{display:flex; flex-direction:column; gap:6px}
+  .label{font-size:11px; text-transform:uppercase; letter-spacing:.07em; color:var(--muted); font-weight:650; display:flex; align-items:center; gap:8px}
+  input[type=text], textarea, select{
+    width:100%; background:var(--card2); border:1px solid var(--border); color:var(--fg);
+    border-radius:11px; padding:11px 12px; font:inherit; outline:0; -webkit-appearance:none; appearance:none;
+  }
+  input[type=text]:focus, textarea:focus, select:focus{border-color:rgba(255,255,255,.22); box-shadow:0 0 0 3px rgba(232,255,90,.12)}
+  textarea{resize:vertical; min-height:170px; font-family:ui-monospace,SFMono-Regular,Menlo,monospace; font-size:13px; line-height:1.5}
+  .select-wrap{position:relative}
+  .select-wrap:after{content:""; position:absolute; right:12px; top:50%; width:6px; height:6px; border-right:1.5px solid var(--muted); border-bottom:1.5px solid var(--muted); transform:translateY(-65%) rotate(45deg); pointer-events:none}
+  .row{display:flex; gap:10px; flex-wrap:wrap; align-items:center}
+  .btn{border:0; border-radius:11px; padding:11px 16px; font-weight:700; cursor:pointer; background:var(--accent); color:var(--accent-ink); transition:transform .08s}
+  .btn:active{transform:scale(.98)} .btn-ghost{background:var(--card2); color:var(--fg); border:1px solid var(--border)}
+  .drop{display:flex; flex-direction:column; align-items:center; justify-content:center; gap:6px; width:100%; min-height:132px; padding:20px; border:1.5px dashed var(--border); border-radius:12px; background:var(--card2); cursor:pointer; text-align:center; transition:border-color .15s, background .15s}
+  .drop.drag{border-color:var(--accent); background:rgba(232,255,90,.08)}
+  .out{margin-top:16px; display:grid; gap:10px}
+  .outbox{background:var(--card2); border:1px solid var(--border); border-radius:12px; padding:12px}
+  .meta{color:var(--muted); font-size:12px; display:flex; gap:12px; flex-wrap:wrap}
+  .actions{display:flex; gap:8px; flex-wrap:wrap; margin-top:10px}
+  .preview{max-width:100%; max-height:300px; border-radius:10px; border:1px solid var(--border); margin-top:10px; display:none}
+  .preview.show{display:block}
+  .list{display:grid; gap:12px; margin-top:16px}
+  .file-card{background:var(--card2); border:1px solid var(--border); border-radius:12px; padding:12px; overflow:hidden}
+  .code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace; word-break:break-all; font-size:12px; line-height:1.5; max-height:180px; overflow:auto; white-space:pre-wrap; background:rgba(0,0,0,.22); padding:10px; border-radius:9px; border:1px solid var(--border)}
+  .small{font-size:12px; color:var(--muted)}
+  .sep{height:1px; background:var(--border); margin:16px 0}
+  .auto-badge{font-size:11px; padding:3px 7px; border-radius:999px; background:var(--accent); color:var(--accent-ink); font-weight:700; display:none; letter-spacing:0; text-transform:none}
+  .auto-badge.show{display:inline-flex}
+  .check{display:inline-flex; align-items:center; gap:6px; font-size:12px; color:var(--muted); cursor:pointer; user-select:none}
+  .check input{accent-color:var(--accent)}
+  #fileInput{display:none !important}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div>
+      <h1>Base64 Data URI</h1>
+      <div class="sub">Paste raw text or drop files → Data URI. Auto-detects MIME. Paste Data URI → decode back. 100% offline.</div>
+    </div>
+    <div class="badge">~9 KB • OFFLINE</div>
+  </header>
+
+  <div class="tabs" role="tablist">
+    <button class="tab" role="tab" aria-selected="true" data-tab="text">Paste Text</button>
+    <button class="tab" role="tab" aria-selected="false" data-tab="files">Upload Files</button>
+    <button class="tab" role="tab" aria-selected="false" data-tab="decode">Decode</button>
+  </div>
+
+  <section class="panel" id="panel-text">
+    <div class="grid2">
+      <div class="field">
+        <span class="label">MIME type <span class="auto-badge" id="autoBadge"></span></span>
+        <input id="mimeText" type="text" value="text/plain;charset=utf-8">
+        <label class="check"><input type="checkbox" id="autoMime" checked> Auto-detect on paste</label>
+      </div>
+      <div class="field"><span class="label">Output</span><div class="select-wrap"><select id="modeText"><option value="datauri" selected>data URI (base64)</option><option value="base64">raw base64 only</option></select></div></div>
+    </div>
+    <div class="field" style="margin-bottom:12px">
+      <span class="label">Raw text — paste anything</span>
+      <textarea id="inputText" placeholder="Paste SVG, JSON, HTML, CSS, JS... MIME will auto-detect"></textarea>
+    </div>
+    <div class="row"><button class="btn" id="convertText">Convert to Data URI →</button><button class="btn-ghost btn" id="clearText">Clear</button><span class="small" id="textStats"></span></div>
+    <div class="out" id="outText" hidden><div class="sep"></div><span class="label">Result</span><div class="outbox"><div class="code" id="codeText"></div><div class="meta" id="metaText" style="margin-top:8px"></div><div class="actions"><button class="btn" data-copy="codeText">Copy</button><button class="btn-ghost btn" id="downloadText">Download .txt</button></div><img id="previewText" class="preview" alt="preview"></div></div>
+  </section>
+
+  <section class="panel" id="panel-files" hidden>
+    <div class="grid2">
+      <div class="field"><span class="label">MIME override (optional)</span><input id="mimeFile" type="text" placeholder="Leave empty to auto-detect"></div>
+      <div class="field"><span class="label">Output</span><div class="select-wrap"><select id="modeFile"><option value="datauri" selected>data URI</option><option value="base64">raw base64 only</option></select></div></div>
+    </div>
+    <div class="drop" id="dropZone" role="button" tabindex="0"><b>Drop files here or click to browse</b><span class="small">Images, fonts, JSON — stays in your browser</span></div>
+    <input id="fileInput" type="file" multiple>
+    <div class="list" id="fileList"></div>
+  </section>
+
+  <section class="panel" id="panel-decode" hidden>
+    <div class="field" style="margin-bottom:12px"><span class="label">Paste Data URI or raw Base64</span><textarea id="inputDecode" placeholder="data:text/plain;base64,SGVsbG8= ..."></textarea></div>
+    <div class="grid2">
+      <div class="field"><span class="label">Filename for download</span><input id="decodeName" type="text" value="decoded-file"></div>
+      <div class="field"><span class="label">Mode</span><div class="select-wrap"><select id="decodeAs"><option value="auto" selected>Auto-detect</option><option value="text">Decode as UTF-8 text</option><option value="binary">Keep as binary</option></select></div></div>
+    </div>
+    <div class="row"><button class="btn" id="convertDecode">Decode →</button><button class="btn-ghost btn" id="clearDecode">Clear</button><span class="small" id="decodeStats"></span></div>
+    <div class="out" id="outDecode" hidden><div class="sep"></div><span class="label">Decoded result</span><div class="outbox"><div class="meta" id="metaDecode"></div><div class="field" style="margin-top:10px" id="wrapDecodedText"><span class="label">Text content</span><textarea id="decodedText" style="min-height:140px"></textarea></div><img id="previewDecode" class="preview" alt="preview"><div class="actions"><button class="btn" id="copyDecodedText">Copy text</button><button class="btn-ghost btn" id="downloadDecoded">Download file</button></div></div></div>
+  </section>
+</div>
+
+<script>
+const $=s=>document.querySelector(s), $$=s=>document.querySelectorAll(s);
+$$('.tab').forEach(b=>{ b.addEventListener('click',()=>{ $$('.tab').forEach(x=>x.setAttribute('aria-selected','false')); b.setAttribute('aria-selected','true'); const t=b.dataset.tab; $('#panel-text').hidden=t!=='text'; $('#panel-files').hidden=t!=='files'; $('#panel-decode').hidden=t!=='decode'; }); });
+
+function bytesToBase64(bytes){ let bin=''; const c=0x8000; for(let i=0;i<bytes.length;i+=c) bin+=String.fromCharCode.apply(null, bytes.subarray(i,i+c)); return btoa(bin); }
+function base64ToBytes(b64){ const bin=atob(b64.replace(/\s/g,'')); const u=new Uint8Array(bin.length); for(let i=0;i<bin.length;i++) u[i]=bin.charCodeAt(i); return u; }
+function textToBase64(s){ return bytesToBase64(new TextEncoder().encode(s)); }
+function formatBytes(n){ if(n<1024) return n+' B'; if(n<1024*1024) return (n/1024).toFixed(1)+' KB'; return (n/1024/1024).toFixed(2)+' MB'; }
+function buildDataUri(mime,b64){ return `data:${mime};base64,${b64}`; }
+function esc(s){ return s.replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+
+// === AUTO MIME DETECTION ===
+function detectMimeType(str){
+  const s=str.trim(); if(!s) return null;
+  const lower=s.slice(0,3000).toLowerCase();
+  const start=s.trimStart().slice(0,2000);
+
+  // data URI pasted as text -> keep its mime
+  if(s.startsWith('data:')){
+    const comma=s.indexOf(',');
+    if(comma>-1){
+      const header=s.slice(5,comma);
+      const mime=header.split(';')[0];
+      if(mime) return mime;
+    }
+  }
+  // SVG - most specific first
+  if(lower.includes('<svg') || start.toLowerCase().startsWith('<svg') || start.startsWith('<?xml') && lower.includes('<svg')){
+    return 'image/svg+xml';
+  }
+  // JSON
+  if((s.trim().startsWith('{') && s.trim().endsWith('}')) || (s.trim().startsWith('[') && s.trim().endsWith(']'))){
+    try{ JSON.parse(s); return 'application/json;charset=utf-8'; }catch{}
+  }
+  // HTML
+  if(/^\s*<!doctype html/i.test(s) || /^\s*<html/i.test(s) || /^\s*<head[\s>]/i.test(s) || /^\s*<body[\s>]/i.test(s) || /<html[^>]*>/i.test(lower.slice(0,500))){
+    return 'text/html;charset=utf-8';
+  }
+  if(/<div|<p|<h[1-6]|<section|<article|<header|<footer/i.test(start.slice(0,1000)) && lower.includes('</')){
+    // if looks like html fragment
+    return 'text/html;charset=utf-8';
+  }
+  // XML
+  if(start.startsWith('<?xml') || (start.startsWith('<') && /<\/[a-z0-9_-]+>\s*$/.test(s.trim().slice(-200)) && !lower.includes('<html'))){
+    // generic xml but not html
+    return 'application/xml';
+  }
+  // CSS
+  if(!start.startsWith('<') && /{[^}]*:[^}]*;[^}]*}/.test(s) && /[a-z-]+\s*:\s*[^;{}]+;/.test(s)){
+    // avoid JS objects: css usually has no => and has ; and { } and no < >
+    if(!/[<>]/.test(s.slice(0,800)) || (s.match(/:/g)||[]).length>=3){
+      return 'text/css;charset=utf-8';
+    }
+  }
+  // JavaScript
+  if(/^\s*(export\s+|import\s+|const\s+|let\s+|var\s+|function\s+|class\s+|\(\)\s*=>|=>)/m.test(s) && !s.trim().startsWith('<')){
+    // not JSON
+    if(s.includes('function') || s.includes('=>') || s.includes('console.') || s.includes('import ') || s.includes('export ')){
+      return 'application/javascript;charset=utf-8';
+    }
+  }
+  // default
+  return 'text/plain;charset=utf-8';
+}
+
+const mimeText=$('#mimeText'), autoMime=$('#autoMime'), autoBadge=$('#autoBadge'), inputText=$('#inputText'), outText=$('#outText'), codeText=$('#codeText'), metaText=$('#metaText'), textStats=$('#textStats'), previewText=$('#previewText'), modeText=$('#modeText');
+
+function applyAutoDetect(showBadge=true){
+  if(!autoMime.checked) return;
+  if(!inputText.value.trim()){ autoBadge.classList.remove('show'); return; }
+  const detected=detectMimeType(inputText.value);
+  if(detected && detected!==mimeText.value){
+    mimeText.value=detected;
+    if(showBadge){
+      autoBadge.textContent='Auto: '+detected.split(';')[0];
+      autoBadge.classList.add('show');
+      clearTimeout(autoBadge._t);
+      autoBadge._t=setTimeout(()=>autoBadge.classList.remove('show'), 2500);
+    }
+  }
+}
+
+let pasteTimer=null;
+inputText.addEventListener('paste', ()=>{
+  // let paste complete
+  setTimeout(()=>applyAutoDetect(true), 20);
+});
+inputText.addEventListener('input', ()=>{
+  if(!inputText.value.trim()){ outText.hidden=true; textStats.textContent=''; autoBadge.classList.remove('show'); return; }
+  textStats.textContent=formatBytes(new TextEncoder().encode(inputText.value).length)+' — '+ (detectMimeType(inputText.value)||'').split(';')[0];
+  // debounced auto
+  clearTimeout(pasteTimer);
+  pasteTimer=setTimeout(()=>applyAutoDetect(false), 600);
+});
+
+function showTextResult(b64){
+  const mime=(mimeText.value.trim()||'text/plain;charset=utf-8'), raw=modeText.value==='base64', res=raw?b64:buildDataUri(mime,b64);
+  codeText.textContent=res; const orig=new TextEncoder().encode(inputText.value).length;
+  metaText.textContent=`${formatBytes(orig)} → ${formatBytes(res.length)} · ${b64.length} base64 chars`; outText.hidden=false;
+  if(mime.startsWith('image/')||res.startsWith('data:image/')){ previewText.src=raw?buildDataUri(mime,b64):res; previewText.classList.add('show'); } else { previewText.classList.remove('show'); }
+}
+$('#convertText').addEventListener('click',()=>{ if(!inputText.value.trim()) return inputText.focus(); showTextResult(textToBase64(inputText.value)); });
+$('#clearText').addEventListener('click',()=>{ inputText.value=''; outText.hidden=true; textStats.textContent=''; codeText.textContent=''; previewText.classList.remove('show'); autoBadge.classList.remove('show'); inputText.focus(); });
+$('#downloadText').addEventListener('click',()=>{ const b=new Blob([codeText.textContent],{type:'text/plain'}); const a=document.createElement('a'); a.href=URL.createObjectURL(b); a.download='datauri.txt'; a.click(); setTimeout(()=>URL.revokeObjectURL(a.href),1000); });
+document.addEventListener('click',e=>{ const btn=e.target.closest('[data-copy]'); if(!btn) return; const target=document.getElementById(btn.getAttribute('data-copy')); navigator.clipboard.writeText(target.textContent||'').then(()=>{ const o=btn.textContent; btn.textContent='Copied ✓'; setTimeout(()=>btn.textContent=o,1200); }); });
+inputText.addEventListener('keydown',e=>{ if((e.metaKey||e.ctrlKey)&&e.key==='Enter'){ e.preventDefault(); $('#convertText').click(); } });
+
+// FILES
+const mimeFile=$('#mimeFile'), modeFile=$('#modeFile'), dropZone=$('#dropZone'), fileInput=$('#fileInput'), fileList=$('#fileList');
+function handleFiles(files){
+  [...files].forEach(file=>{
+    const r=new FileReader(); r.onload=()=>{
+      const bytes=new Uint8Array(r.result), b64=bytesToBase64(bytes), detected=file.type||'application/octet-stream', mime=(mimeFile.value.trim()||detected), raw=modeFile.value==='base64', dataUri=raw?b64:buildDataUri(mime,b64);
+      const card=document.createElement('div'); card.className='file-card';
+      card.innerHTML=`<div style="display:flex; justify-content:space-between; gap:10px; flex-wrap:wrap"><div><strong>${esc(file.name)}</strong> <span class="small">· ${formatBytes(file.size)} · ${esc(detected)}</span></div><div class="small">${esc(mime)}</div></div><div class="code" style="margin-top:8px">${esc(dataUri.slice(0,4000))}${dataUri.length>4000?'…':''}</div><div class="meta" style="margin-top:6px">${formatBytes(dataUri.length)} total</div><div class="actions"><button class="btn btn-copy">Copy full URI</button><button class="btn-ghost btn btn-dl">Download .txt</button></div>${mime.startsWith('image/')||detected.startsWith('image/')?`<img class="preview show" src="${buildDataUri(mime,b64)}">`:''}`;
+      fileList.prepend(card);
+      card.querySelector('.btn-copy').addEventListener('click',ev=>{ navigator.clipboard.writeText(dataUri); ev.target.textContent='Copied ✓'; setTimeout(()=>ev.target.textContent='Copy full URI',1200); });
+      card.querySelector('.btn-dl').addEventListener('click',()=>{ const b=new Blob([dataUri],{type:'text/plain'}); const a=document.createElement('a'); a.href=URL.createObjectURL(b); a.download=file.name+'.datauri.txt'; a.click(); setTimeout(()=>URL.revokeObjectURL(a.href),1000); });
+    }; r.readAsArrayBuffer(file);
+  });
+}
+dropZone.addEventListener('click',()=>fileInput.click());
+dropZone.addEventListener('keydown',e=>{ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); fileInput.click(); } });
+fileInput.addEventListener('change',e=>{ handleFiles(e.target.files); e.target.value=''; });
+['dragenter','dragover'].forEach(ev=>dropZone.addEventListener(ev,e=>{ e.preventDefault(); dropZone.classList.add('drag'); }));
+['dragleave','drop'].forEach(ev=>dropZone.addEventListener(ev,e=>{ e.preventDefault(); dropZone.classList.remove('drag'); }));
+dropZone.addEventListener('drop',e=>handleFiles(e.dataTransfer.files));
+
+// DECODE
+const inputDecode=$('#inputDecode'), outDecode=$('#outDecode'), metaDecode=$('#metaDecode'), decodedTextEl=$('#decodedText'), previewDecode=$('#previewDecode'), decodeStats=$('#decodeStats'), decodeName=$('#decodeName'), decodeAs=$('#decodeAs'), wrapDecodedText=$('#wrapDecodedText');
+let last={bytes:null,mime:'application/octet-stream'};
+function parseDataInput(raw){
+  const s=raw.trim(); if(!s) throw new Error('Empty input');
+  if(s.startsWith('data:')){ const comma=s.indexOf(','); if(comma===-1) throw new Error('Invalid Data URI'); const header=s.slice(5,comma), dataPart=s.slice(comma+1), parts=header.split(';'); let mime=parts[0]||'text/plain', isB64=parts.includes('base64'), bytes; if(isB64) bytes=base64ToBytes(dataPart); else { try{ bytes=new TextEncoder().encode(decodeURIComponent(dataPart)); } catch{ bytes=new TextEncoder().encode(dataPart); } } if(!mime) mime='text/plain'; return {mime,bytes,isDataUri:true}; }
+  else { const b64=s.replace(/\s/g,''); if(!/^[A-Za-z0-9+/=_-]+$/.test(b64)) throw new Error('Not valid base64'); const norm=b64.replace(/-/g,'+').replace(/_/g,'/'); return {mime:'application/octet-stream',bytes:base64ToBytes(norm),isDataUri:false}; }
+}
+function guessExt(mime){ const m={'image/png':'png','image/jpeg':'jpg','image/svg+xml':'svg','image/gif':'gif','image/webp':'webp','text/plain':'txt','text/html':'html','application/json':'json','text/css':'css','application/javascript':'js'}; return m[mime.split(';')[0]]||'bin'; }
+$('#convertDecode').addEventListener('click',()=>{ try{ const res=parseDataInput(inputDecode.value); last={bytes:res.bytes,mime:res.mime}; const size=res.bytes.length; metaDecode.textContent=`${res.mime} · ${formatBytes(size)} decoded`; if(res.mime.startsWith('image/')){ previewDecode.src=buildDataUri(res.mime,bytesToBase64(res.bytes)); previewDecode.classList.add('show'); wrapDecodedText.hidden=true; } else { previewDecode.classList.remove('show'); let txt=''; try{ txt=new TextDecoder().decode(res.bytes); }catch{} const f=decodeAs.value; if(f==='binary') wrapDecodedText.hidden=true; else { decodedTextEl.value=txt; wrapDecodedText.hidden=false; } } outDecode.hidden=false; decodeStats.textContent=`${formatBytes(size)} decoded`; if(decodeName.value==='decoded-file' || !decodeName.value) decodeName.value=`decoded-file.${guessExt(res.mime)}`; } catch(err){ metaDecode.textContent='Error: '+err.message; outDecode.hidden=false; } });
+$('#clearDecode').addEventListener('click',()=>{ inputDecode.value=''; outDecode.hidden=true; decodeStats.textContent=''; previewDecode.classList.remove('show'); inputDecode.focus(); });
+$('#copyDecodedText').addEventListener('click',e=>{ navigator.clipboard.writeText(decodedTextEl.value); const o=e.target.textContent; e.target.textContent='Copied ✓'; setTimeout(()=>e.target.textContent=o,1200); });
+$('#downloadDecoded').addEventListener('click',()=>{ if(!last.bytes) return; const b=new Blob([last.bytes],{type:last.mime}); const a=document.createElement('a'); a.href=URL.createObjectURL(b); a.download=decodeName.value.trim()||'decoded-file'; a.click(); setTimeout(()=>URL.revokeObjectURL(a.href),1000); });
+</script>
+</body>
+</html>
